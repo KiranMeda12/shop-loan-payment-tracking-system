@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -9,6 +9,8 @@ from backend.database import engine, Base, get_db
 from backend.models import AdminUser, Customer, PaymentRecord, PaymentTransaction
 from backend.auth import hash_password
 from backend.routers import auth_routes, record_routes, customer_routes, report_routes, backup_routes
+
+is_vercel = os.getenv("VERCEL") == "1" or os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -28,8 +30,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Normalize API path in serverless environments (handles cases where proxy strips /api)
+@app.middleware("http")
+async def normalize_api_path(request: Request, call_next):
+    path = request.scope.get("path", "")
+    if not path.startswith("/api") and not path.startswith("/uploads") and path not in ["/", "/docs", "/openapi.json"]:
+        request.scope["path"] = f"/api{path}"
+    response = await call_next(request)
+    return response
+
 # Uploads directory
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+if is_vercel:
+    UPLOAD_DIR = "/tmp/uploads"
+else:
+    UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
@@ -40,30 +54,31 @@ app.include_router(customer_routes.router)
 app.include_router(report_routes.router)
 app.include_router(backup_routes.router)
 
+def ensure_default_admin(db: Session):
+    admin = db.query(AdminUser).filter(AdminUser.username == "admin").first()
+    if not admin:
+        admin = AdminUser(
+            username="admin",
+            password_hash=hash_password("admin123"),
+            shop_name="Sri Balaji Supermarket & Provisions",
+            shop_phone="+91 98450 12345",
+            shop_address="#45, Gandhi Market Road, Bangalore, Karnataka - 560002"
+        )
+        db.add(admin)
+        db.commit()
+
 @app.on_event("startup")
 def on_startup():
     db = next(get_db())
     try:
-        # Check and seed default admin user
-        admin = db.query(AdminUser).filter(AdminUser.username == "admin").first()
-        if not admin:
-            admin = AdminUser(
-                username="admin",
-                password_hash=hash_password("admin123"),
-                shop_name="Sri Balaji Supermarket & Provisions",
-                shop_phone="+91 98450 12345",
-                shop_address="#45, Gandhi Market Road, Bangalore, Karnataka - 560002"
-            )
-            db.add(admin)
-            db.commit()
-            print("Default admin created: username='admin', password='admin123'")
+        ensure_default_admin(db)
     finally:
         db.close()
 
 # Quick utility to seed demo data if explicitly requested by shop owner
 @app.post("/api/seed-demo-data")
 def seed_demo_data(db: Session = Depends(get_db)):
-    # Check if records already exist
+    ensure_default_admin(db)
     existing = db.query(Customer).count()
     if existing > 0:
         return {"message": "Database already contains customer records. Demo seeding skipped.", "count": existing}
@@ -86,19 +101,12 @@ def seed_demo_data(db: Session = Depends(get_db)):
         db.refresh(c)
         created_custs.append(c)
 
-    # Add records for each with realistic statuses
     records_info = [
-        # Customer 0: Ramesh - Fully Paid
         {"cust_idx": 0, "amount": 12500.0, "paid": 12500.0, "status": "Paid", "days_ago": 20, "tx": [12500.0]},
-        # Customer 1: Priya - Partially Paid
         {"cust_idx": 1, "amount": 8000.0, "paid": 3500.0, "status": "Partially Paid", "days_ago": 15, "tx": [3500.0]},
-        # Customer 2: Anil - Pending
         {"cust_idx": 2, "amount": 15000.0, "paid": 0.0, "status": "Pending", "days_ago": 8, "tx": []},
-        # Customer 3: Kavitha - Overdue
         {"cust_idx": 3, "amount": 9500.0, "paid": 2000.0, "status": "Overdue", "days_ago": 45, "due_days_ago": 10, "tx": [2000.0]},
-        # Customer 4: Irfan - Fully Paid
         {"cust_idx": 4, "amount": 6200.0, "paid": 6200.0, "status": "Paid", "days_ago": 12, "tx": [3000.0, 3200.0]},
-        # Customer 5: Deepak - Partially Paid
         {"cust_idx": 5, "amount": 18400.0, "paid": 9000.0, "status": "Partially Paid", "days_ago": 5, "tx": [9000.0]},
     ]
 
@@ -140,7 +148,8 @@ def seed_demo_data(db: Session = Depends(get_db)):
     return {"message": "Demo sample records seeded successfully!", "customers": len(created_custs), "records": len(records_info)}
 
 @app.get("/")
-def root():
+def root(db: Session = Depends(get_db)):
+    ensure_default_admin(db)
     return {
         "status": "online",
         "system": "Shop Loan & Payment Tracking Management System",

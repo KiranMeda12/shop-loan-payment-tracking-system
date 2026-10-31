@@ -4,7 +4,11 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from backend.models import Customer, PaymentRecord, PaymentTransaction, BackupLog, AdminUser
 
-BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
+is_vercel = os.getenv("VERCEL") == "1" or os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
+if is_vercel:
+    BACKUP_DIR = "/tmp/backups"
+else:
+    BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
 def create_database_backup(db: Session) -> dict:
