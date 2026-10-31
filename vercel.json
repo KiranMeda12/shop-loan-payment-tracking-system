@@ -6,7 +6,7 @@
       "use": "@vercel/python"
     },
     {
-      "src": "frontend/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
@@ -23,11 +23,23 @@
       "dest": "api/index.py"
     },
     {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/favicon.svg",
+      "dest": "/favicon.svg"
+    },
+    {
+      "src": "/icons.svg",
+      "dest": "/icons.svg"
+    },
+    {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/index.html"
+      "dest": "/index.html"
     }
   ]
 }
