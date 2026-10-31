@@ -15,7 +15,7 @@ import {
   Calendar,
   X
 } from 'lucide-react';
-import api, { formatCurrency, formatDate } from '../api';
+import api, { formatCurrency, formatDate, downloadFile } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import ConfirmModal from '../components/ConfirmModal';
 import EditRecordModal from '../components/EditRecordModal';
@@ -40,6 +40,8 @@ export default function RecordsView({
   // Modals state
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [fullPayTarget, setFullPayTarget] = useState(null);
+  const [fullPayLoading, setFullPayLoading] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
 
   const fetchRecords = async () => {
@@ -64,16 +66,21 @@ export default function RecordsView({
     fetchRecords();
   }, [search, statusFilter, selectedYear, selectedMonth, refreshTrigger]);
 
-  const handleMarkAsPaid = async (record) => {
+  const handleConfirmFullPayment = async () => {
+    if (!fullPayTarget) return;
     try {
-      await api.post(`/records/${record.id}/pay-full`, {
+      setFullPayLoading(true);
+      await api.post(`/records/${fullPayTarget.id}/pay-full`, {
         payment_method: 'Cash',
-        notes: 'Marked full payment by owner',
+        notes: 'Confirmed full payment by shop owner',
       });
+      setFullPayTarget(null);
       fetchRecords();
       if (onRecordChanged) onRecordChanged();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to mark as paid');
+    } finally {
+      setFullPayLoading(false);
     }
   };
 
@@ -92,12 +99,12 @@ export default function RecordsView({
     }
   };
 
-  const handleExportExcel = () => {
-    let url = '/api/reports/excel?';
+  const handleExportExcel = async () => {
+    let url = '/reports/excel?';
     if (statusFilter !== 'All') url += `status_filter=${statusFilter}&`;
     if (selectedYear) url += `year=${selectedYear}&`;
     if (selectedMonth) url += `month=${selectedMonth}&`;
-    window.open(url, '_blank');
+    await downloadFile(url, 'Customer_Records.xlsx');
   };
 
   const statusTabs = ['All', 'Paid', 'Partially Paid', 'Pending', 'Overdue'];
@@ -289,11 +296,11 @@ export default function RecordsView({
                           </button>
                         )}
 
-                        {/* Mark Fully Paid */}
+                        {/* Mark Fully Paid with Confirmation Popup */}
                         {r.remaining_balance > 0 && (
                           <button
-                            onClick={() => handleMarkAsPaid(r)}
-                            title="Mark as Fully Paid"
+                            onClick={() => setFullPayTarget(r)}
+                            title="Confirm Full Payment"
                             className="p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
                           >
                             <CheckCircle2 className="w-4 h-4" />
@@ -341,6 +348,18 @@ export default function RecordsView({
           </table>
         </div>
       </div>
+
+      {/* Full Payment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(fullPayTarget)}
+        title="Confirm Full Payment?"
+        message={`Are you sure you want to confirm full payment of ${fullPayTarget ? formatCurrency(fullPayTarget.remaining_balance) : ''} for "${fullPayTarget?.customer_name}" (Record ${fullPayTarget?.record_id})? This will mark the record as fully paid.`}
+        confirmText="Yes, Confirm Full Payment"
+        confirmColor="emerald"
+        loading={fullPayLoading}
+        onConfirm={handleConfirmFullPayment}
+        onCancel={() => setFullPayTarget(null)}
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

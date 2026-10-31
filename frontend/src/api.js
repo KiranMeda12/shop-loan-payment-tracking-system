@@ -68,4 +68,32 @@ export const formatDateTime = (dateString) => {
   }
 };
 
+export const downloadFile = async (endpoint, fallbackName = 'download') => {
+  try {
+    const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.replace('/api', '') : endpoint;
+    const res = await api.get(cleanEndpoint, { responseType: 'blob' });
+    let filename = fallbackName;
+    const disposition = res.headers['content-disposition'];
+    if (disposition && disposition.indexOf('filename=') !== -1) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    const blob = new Blob([res.data], { type: res.headers['content-type'] });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (err) {
+    console.error('Download via blob failed, trying direct window link with token', err);
+    const token = localStorage.getItem('shop_token');
+    const cleanEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+    const separator = cleanEndpoint.includes('?') ? '&' : '?';
+    window.open(`${cleanEndpoint}${separator}token=${token}`, '_blank');
+  }
+};
+
 export default api;

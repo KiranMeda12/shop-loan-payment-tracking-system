@@ -29,7 +29,7 @@ export default function Sidebar({ currentView, setCurrentView, onOpenAddModal, u
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">PRO</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-1 font-medium truncate max-w-[150px]">
-              {user?.shop_name || 'Loan & Payment Tracking'}
+              {user?.shop_name || 'Sri Sadananda Store'}
             </p>
           </div>
         </div>

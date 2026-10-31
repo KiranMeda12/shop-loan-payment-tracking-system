@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, Phone, User, Calendar, CreditCard, CheckCircle2, Clock, AlertTriangle, FileText, ArrowUpRight } from 'lucide-react';
-import api, { formatCurrency, formatDate, formatDateTime } from '../api';
+import api, { formatCurrency, formatDate, formatDateTime, downloadFile } from '../api';
 import StatusBadge from './StatusBadge';
 
 export default function CustomerDetailModal({ customerId, isOpen, onClose, onRefreshRequired }) {
@@ -32,8 +32,8 @@ export default function CustomerDetailModal({ customerId, isOpen, onClose, onRef
     window.print();
   };
 
-  const handleDownloadPdf = () => {
-    window.open(`/api/customers/${customerId}/statement-pdf`, '_blank');
+  const handleDownloadPdf = async () => {
+    await downloadFile(`/customers/${customerId}/statement-pdf`, `Statement_${customer?.name || 'Customer'}.pdf`);
   };
 
   // Collect all transactions across all records

@@ -45,14 +45,38 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user: AdminUser = Depends(get_current_admin)
 ):
-    if req.shop_name:
-        current_user.shop_name = req.shop_name
-    if req.shop_phone:
-        current_user.shop_phone = req.shop_phone
-    if req.shop_address:
-        current_user.shop_address = req.shop_address
-    if req.new_password and len(req.new_password) >= 6:
-        current_user.password_hash = hash_password(req.new_password)
+    if req.shop_name is not None:
+        current_user.shop_name = req.shop_name.strip()
+    if req.shop_phone is not None:
+        current_user.shop_phone = req.shop_phone.strip()
+    if req.shop_address is not None:
+        current_user.shop_address = req.shop_address.strip()
+
+    if req.username is not None and req.username.strip():
+        new_username = req.username.strip()
+        if new_username != current_user.username:
+            existing = db.query(AdminUser).filter(AdminUser.username == new_username, AdminUser.id != current_user.id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="This username is already taken.")
+            current_user.username = new_username
+
+    if req.new_password and req.new_password.strip():
+        if not req.current_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Please enter your previous password to verify your identity."
+            )
+        if not verify_password(req.current_password, current_user.password_hash):
+            raise HTTPException(
+                status_code=400,
+                detail="Previous password is incorrect. Please enter your correct current password."
+            )
+        if len(req.new_password.strip()) < 6:
+            raise HTTPException(
+                status_code=400,
+                detail="New password must be at least 6 characters long."
+            )
+        current_user.password_hash = hash_password(req.new_password.strip())
 
     db.commit()
     db.refresh(current_user)

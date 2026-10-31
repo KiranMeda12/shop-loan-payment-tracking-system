@@ -55,17 +55,23 @@ app.include_router(report_routes.router)
 app.include_router(backup_routes.router)
 
 def ensure_default_admin(db: Session):
-    admin = db.query(AdminUser).filter(AdminUser.username == "admin").first()
+    admin = db.query(AdminUser).first()
     if not admin:
         admin = AdminUser(
             username="admin",
             password_hash=hash_password("admin123"),
-            shop_name="Sri Balaji Supermarket & Provisions",
+            shop_name="Sri Sadananda Store",
             shop_phone="+91 98450 12345",
-            shop_address="#45, Gandhi Market Road, Bangalore, Karnataka - 560002"
+            shop_address="Main Road, Hiriyur - 577598"
         )
         db.add(admin)
         db.commit()
+    else:
+        # If still on default placeholder name, update to user's shop name
+        if "Balaji" in admin.shop_name or "Shop Credit" in admin.shop_name:
+            admin.shop_name = "Sri Sadananda Store"
+            admin.shop_address = "Main Road, Hiriyur - 577598"
+            db.commit()
 
 @app.on_event("startup")
 def on_startup():

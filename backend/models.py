@@ -9,9 +9,9 @@ class AdminUser(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    shop_name = Column(String(200), default="Shop Credit & Loan Management")
-    shop_phone = Column(String(50), default="+91 98765 43210")
-    shop_address = Column(String(300), default="Main Bazaar, Commercial Street")
+    shop_name = Column(String(200), default="Sri Sadananda Store")
+    shop_phone = Column(String(50), default="+91 98450 12345")
+    shop_address = Column(String(300), default="Main Road, Hiriyur - 577598")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Customer(Base):

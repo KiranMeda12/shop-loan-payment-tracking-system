@@ -29,7 +29,7 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts';
-import api, { formatCurrency } from '../api';
+import api, { formatCurrency, downloadFile } from '../api';
 import StatCard from '../components/StatCard';
 
 export default function ReportsView() {
@@ -87,16 +87,16 @@ export default function ReportsView() {
     fetchReport();
   }, [filterMode, selectedYear, selectedMonth, startDate, endDate]);
 
-  const handleDownloadPdf = () => {
-    let url = `/api/reports/monthly-pdf?year=${selectedYear}`;
+  const handleDownloadPdf = async () => {
+    let url = `/reports/monthly-pdf?year=${selectedYear}`;
     if (selectedMonth) url += `&month=${selectedMonth}`;
-    window.open(url, '_blank');
+    await downloadFile(url, `Financial_Report_${selectedYear}.pdf`);
   };
 
-  const handleExportExcel = () => {
-    let url = `/api/reports/excel?year=${selectedYear}`;
+  const handleExportExcel = async () => {
+    let url = `/reports/excel?year=${selectedYear}`;
     if (selectedMonth) url += `&month=${selectedMonth}`;
-    window.open(url, '_blank');
+    await downloadFile(url, `Shop_Credit_Records_${selectedYear}.xlsx`);
   };
 
   const handlePrint = () => {

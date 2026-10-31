@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, Store } from 'lucide-react';
+import { ShieldCheck, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
 import api from '../api';
 
 export default function LoginView({ onLoginSuccess }) {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,12 +36,6 @@ export default function LoginView({ onLoginSuccess }) {
     }
   };
 
-  const handleFillDemo = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setError('');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
@@ -52,7 +46,7 @@ export default function LoginView({ onLoginSuccess }) {
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">ShopCredit Pro</h1>
           <p className="text-xs text-slate-400 mt-1.5 max-w-xs mx-auto">
-            Shop Loan & Payment Tracking Management System
+            Sri Sadananda Store • Financial & Loan Tracking
           </p>
         </div>
 
@@ -60,7 +54,7 @@ export default function LoginView({ onLoginSuccess }) {
         <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-8">
           <div className="mb-6">
             <h2 className="text-lg font-bold text-slate-900">Shop Owner Sign In</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Enter your credentials to access the financial portal</p>
+            <p className="text-xs text-slate-500 mt-0.5">Enter your credentials to access your financial dashboard</p>
           </div>
 
           {error && (
@@ -73,7 +67,7 @@ export default function LoginView({ onLoginSuccess }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                Username
+                Username / Login ID
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
@@ -84,7 +78,7 @@ export default function LoginView({ onLoginSuccess }) {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
+                  placeholder="Enter your username"
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:outline-hidden focus:border-blue-600 focus:ring-3 focus:ring-blue-100 text-slate-900 text-sm font-medium"
                 />
               </div>
@@ -124,29 +118,12 @@ export default function LoginView({ onLoginSuccess }) {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Credentials Box */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-slate-700 block">Default Shop Owner:</span>
-                <span className="text-[11px] text-slate-500 font-mono">admin / admin123</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors cursor-pointer"
-              >
-                Auto Fill
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Secure Encrypted Session • MySQL Backend</span>
+          <span>Secure Encrypted Session</span>
         </div>
       </div>
     </div>

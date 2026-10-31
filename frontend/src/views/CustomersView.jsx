@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Users, Phone, Calendar, ArrowUpRight, Download, FileText, ChevronRight, X } from 'lucide-react';
-import api, { formatCurrency, formatDate } from '../api';
+import { Search, Users, Phone, Calendar, ArrowUpRight, Download, FileText, ChevronRight, X, Trash2 } from 'lucide-react';
+import api, { formatCurrency, formatDate, downloadFile } from '../api';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function CustomersView({ onOpenCustomerDetail, refreshTrigger }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchCustomers = async () => {
     try {
@@ -24,6 +27,24 @@ export default function CustomersView({ onOpenCustomerDetail, refreshTrigger }) 
   useEffect(() => {
     fetchCustomers();
   }, [search, refreshTrigger]);
+
+  const handleDeleteCustomer = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleteLoading(true);
+      await api.delete(`/customers/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      fetchCustomers();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete customer.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = async (customer) => {
+    await downloadFile(`/customers/${customer.id}/statement-pdf`, `Statement_${customer.name.replace(/\s+/g, '_')}.pdf`);
+  };
 
   const totalOutstanding = customers.reduce((sum, c) => sum + (c.remaining_balance || 0), 0);
   const totalCredit = customers.reduce((sum, c) => sum + (c.total_amount_to_pay || 0), 0);
@@ -136,19 +157,31 @@ export default function CustomersView({ onOpenCustomerDetail, refreshTrigger }) 
 
                     <td className="px-5 py-3.5 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {/* Download Statement PDF */}
                         <button
-                          onClick={() => window.open(`/api/customers/${c.id}/statement-pdf`, '_blank')}
+                          onClick={() => handleDownloadPdf(c)}
                           title="Download PDF Statement"
                           className="p-1.5 rounded-lg border border-slate-200 hover:bg-blue-50 hover:text-blue-600 text-slate-600 transition-colors cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* View Ledger */}
                         <button
                           onClick={() => onOpenCustomerDetail(c.id)}
                           className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <span>Ledger</span>
                           <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete Customer Button */}
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          title="Delete Customer"
+                          className="p-1.5 rounded-lg border border-slate-200 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -165,6 +198,17 @@ export default function CustomersView({ onOpenCustomerDetail, refreshTrigger }) 
           </table>
         </div>
       </div>
+
+      {/* Delete Customer Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        title="Delete Customer Account?"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This will permanently delete this customer along with all their previous loan records and payment history. Please confirm by pressing Yes.`}
+        confirmText="Yes, Delete Customer"
+        loading={deleteLoading}
+        onConfirm={handleDeleteCustomer}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

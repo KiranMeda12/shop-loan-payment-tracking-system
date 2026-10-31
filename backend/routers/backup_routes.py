@@ -1,5 +1,6 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Response
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from backend.database import get_db
@@ -56,3 +57,24 @@ def download_backup_file(
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{log.file_name}"'}
     )
+
+@router.delete("/{backup_id}")
+def delete_backup_file(
+    backup_id: int,
+    db: Session = Depends(get_db),
+    current_admin: AdminUser = Depends(get_current_admin)
+):
+    log = db.query(BackupLog).filter(BackupLog.id == backup_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Backup entry not found")
+
+    file_path = os.path.join(BACKUP_DIR, log.file_name)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
+    db.delete(log)
+    db.commit()
+    return {"message": "Backup deleted successfully", "id": backup_id}
