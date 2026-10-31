@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Plus, Clock, Store, Calendar } from 'lucide-react';
+import { Menu, Plus, Clock, Store, Calendar, ArrowLeft } from 'lucide-react';
 import { formatDateTime } from '../api';
 
-export default function Navbar({ currentView, onOpenAddModal, onToggleMobile, user }) {
+export default function Navbar({ currentView, onOpenAddModal, onToggleMobile, user, canGoBack, onGoBack }) {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -26,14 +26,27 @@ export default function Navbar({ currentView, onOpenAddModal, onToggleMobile, us
   return (
     <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-6 py-3.5 no-print">
       <div className="flex items-center justify-between gap-4">
-        {/* Left: Mobile Toggle + Title */}
-        <div className="flex items-center gap-3">
+        {/* Left: Mobile Toggle + Back Button + Title */}
+        <div className="flex items-center gap-2">
           <button
             onClick={onToggleMobile}
             className="md:hidden p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100"
           >
             <Menu className="w-5 h-5" />
           </button>
+
+          {/* Back Button — always visible when there's history */}
+          {canGoBack && (
+            <button
+              onClick={onGoBack}
+              title="Go Back to Previous Page"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-slate-600 font-semibold text-xs transition-all shadow-2xs cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+          )}
+
           <div>
             <h1 className="text-lg font-extrabold tracking-tight text-slate-900 leading-snug">
               {currentInfo.title}

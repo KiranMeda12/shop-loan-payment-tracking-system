@@ -25,8 +25,24 @@ export default function App() {
   });
 
   const [currentView, setCurrentView] = useState('dashboard');
+  const [viewHistory, setViewHistory] = useState([]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Navigate to a new view and push current to history
+  const navigateTo = (newView) => {
+    if (newView === currentView) return;
+    setViewHistory((prev) => [...prev, currentView]);
+    setCurrentView(newView);
+  };
+
+  // Go back to previous view
+  const goBack = () => {
+    if (viewHistory.length === 0) return;
+    const prev = viewHistory[viewHistory.length - 1];
+    setViewHistory((h) => h.slice(0, -1));
+    setCurrentView(prev);
+  };
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -60,7 +76,7 @@ export default function App() {
       {/* Sidebar Navigation */}
       <Sidebar
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={navigateTo}
         onOpenAddModal={() => setIsAddModalOpen(true)}
         user={user}
         onLogout={handleLogout}
@@ -75,6 +91,8 @@ export default function App() {
           onOpenAddModal={() => setIsAddModalOpen(true)}
           onToggleMobile={() => setIsMobileOpen(true)}
           user={user}
+          canGoBack={viewHistory.length > 0}
+          onGoBack={goBack}
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
