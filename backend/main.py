@@ -58,8 +58,8 @@ def ensure_default_admin(db: Session):
     admin = db.query(AdminUser).first()
     if not admin:
         admin = AdminUser(
-            username="admin",
-            password_hash=hash_password("admin123"),
+            username="Nagesha36",
+            password_hash=hash_password("@363636"),
             shop_name="Sri Sadananda Store",
             shop_phone="+91 98450 12345",
             shop_address="Main Road, Hiriyur - 577598"
@@ -71,6 +71,11 @@ def ensure_default_admin(db: Session):
         if "Balaji" in admin.shop_name or "Shop Credit" in admin.shop_name:
             admin.shop_name = "Sri Sadananda Store"
             admin.shop_address = "Main Road, Hiriyur - 577598"
+            db.commit()
+        # Migrate old default credentials to new ones
+        if admin.username in ("admin",):
+            admin.username = "Nagesha36"
+            admin.password_hash = hash_password("@363636")
             db.commit()
 
 @app.on_event("startup")
