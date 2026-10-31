@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Printer, Download, Phone, User, Calendar, CreditCard, CheckCircle2, Clock, AlertTriangle, FileText, ArrowUpRight } from 'lucide-react';
+import { X, Printer, Download, Phone, User, Calendar, CreditCard, CheckCircle2, Clock, AlertTriangle, FileText, ArrowUpRight, ArrowLeft } from 'lucide-react';
 import api, { formatCurrency, formatDate, formatDateTime, downloadFile } from '../api';
 import StatusBadge from './StatusBadge';
 
@@ -28,6 +28,14 @@ export default function CustomerDetailModal({ customerId, isOpen, onClose, onRef
     fetchCustomer();
   }, [customerId]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -54,21 +62,36 @@ export default function CustomerDetailModal({ customerId, isOpen, onClose, onRef
   const allSlips = (customer?.records || []).filter((r) => r.slip_url);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+    >
       <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 text-white flex items-center justify-between no-print">
-          <div>
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-blue-400" />
-              <h3 className="text-base font-bold">Customer Account Ledger</h3>
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 text-white flex items-center justify-between no-print gap-3">
+          <div className="flex items-center gap-3">
+            {/* Prominent Back Button */}
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 text-white text-xs font-bold transition-all cursor-pointer shadow-xs hover:shadow"
+              title="Go back"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+            <div className="h-6 w-px bg-white/20 hidden sm:block" />
+            <div>
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-blue-400" />
+                <h3 className="text-base font-bold">Customer Account Ledger</h3>
+              </div>
+              <p className="text-xs text-slate-300">Complete loan, transaction and payment history</p>
             </div>
-            <p className="text-xs text-slate-300">Complete loan, transaction and payment history</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               Print Statement
@@ -83,6 +106,7 @@ export default function CustomerDetailModal({ customerId, isOpen, onClose, onRef
             <button
               onClick={onClose}
               className="p-1.5 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer ml-1"
+              title="Close ledger"
             >
               <X className="w-5 h-5" />
             </button>
@@ -315,6 +339,33 @@ export default function CustomerDetailModal({ customerId, isOpen, onClose, onRef
               )}
             </>
           ) : null}
+        </div>
+
+        {/* Bottom Footer with Back Button */}
+        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between no-print">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Customer List</span>
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 hover:bg-white text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              PDF Statement
+            </button>
+          </div>
         </div>
       </div>
     </div>
