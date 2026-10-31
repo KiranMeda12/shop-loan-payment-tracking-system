@@ -60,7 +60,7 @@ export default function ReportsView() {
     { value: 12, label: 'December' },
   ];
 
-  const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+  const years = Array.from({ length: 16 }, (_, i) => currentYear - 10 + i); // 10 past + current + 5 future
 
   const fetchReport = async () => {
     try {

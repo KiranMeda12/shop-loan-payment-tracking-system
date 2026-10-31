@@ -1,12 +1,60 @@
 import React, { useState } from 'react';
-import { X, Download, FileText, UploadCloud, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Download, FileText, UploadCloud, AlertCircle, CheckCircle2, ImageIcon } from 'lucide-react';
 import api from '../api';
+
+// Compress image using Canvas API — reduces phone photos from MBs to ~150-300 KB
+function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
+  return new Promise((resolve) => {
+    // PDFs and non-images: skip compression
+    if (file.type === 'application/pdf') {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+
+        // Scale down if larger than max dimensions
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function SlipModal({ record, isOpen, onClose, onUpdated }) {
   if (!isOpen || !record) return null;
 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [compressing, setCompressing] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState('');
   const isPdf = record.slip_filename?.toLowerCase().endsWith('.pdf');
 
   const handleFileUpload = async (e) => {
@@ -16,18 +64,34 @@ export default function SlipModal({ record, isOpen, onClose, onUpdated }) {
     try {
       setUploading(true);
       setError('');
+      setCompressionInfo('');
+
+      let fileToUpload = file;
+
+      // Compress images (not PDFs)
+      if (file.type !== 'application/pdf') {
+        setCompressing(true);
+        const originalSizeKB = Math.round(file.size / 1024);
+        fileToUpload = await compressImage(file);
+        const compressedSizeKB = Math.round(fileToUpload.size / 1024);
+        setCompressionInfo(`Compressed: ${originalSizeKB} KB → ${compressedSizeKB} KB`);
+        setCompressing(false);
+      }
+
       const formData = new FormData();
-      formData.append('slip', file);
+      formData.append('slip', fileToUpload);
       await api.post(`/records/${record.id}/upload-slip`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (onUpdated) onUpdated();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to upload new slip.');
+      setError(err.response?.data?.detail || 'Failed to upload slip.');
+      setCompressing(false);
     } finally {
       setUploading(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
@@ -108,21 +172,46 @@ export default function SlipModal({ record, isOpen, onClose, onUpdated }) {
           )}
 
           {/* Replace / Upload New Slip */}
-          <div className="mt-6 w-full max-w-md pt-4 border-t border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">
-              {record.slip_url ? 'Replace Slip:' : 'Attach Slip:'}
-            </span>
-            <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-semibold cursor-pointer shadow-2xs transition-all">
-              <UploadCloud className="w-4 h-4" />
-              <span>{uploading ? 'Uploading...' : 'Choose File'}</span>
-              <input
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf,.webp"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                className="sr-only"
-              />
-            </label>
+          <div className="mt-6 w-full max-w-md pt-4 border-t border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-medium text-slate-500">
+                  {record.slip_url ? 'Replace Slip:' : 'Attach Slip:'}
+                </span>
+                <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
+                  📱 Photos auto-compressed to save space
+                </p>
+              </div>
+              <label className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${compressing || uploading ? 'border-blue-300 bg-blue-50 text-blue-600 cursor-wait' : 'border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 cursor-pointer'} text-xs font-semibold shadow-2xs transition-all`}>
+                <UploadCloud className={`w-4 h-4 ${compressing || uploading ? 'animate-bounce' : ''}`} />
+                <span>
+                  {compressing ? 'Compressing...' : uploading ? 'Uploading...' : 'Choose File'}
+                </span>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf,.webp,.heic,.heif"
+                  onChange={handleFileUpload}
+                  disabled={uploading || compressing}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+
+            {/* Compression Result Info */}
+            {compressionInfo && (
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>{compressionInfo} — saved to server</span>
+              </div>
+            )}
+
+            {/* Compressing progress */}
+            {compressing && (
+              <div className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1.5">
+                <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span>Compressing image for fast upload...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

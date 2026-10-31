@@ -180,7 +180,7 @@ export default function RecordsView({
               className="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-semibold text-slate-700 focus:outline-hidden cursor-pointer"
             >
               <option value="">All Years</option>
-              {[currentYear - 2, currentYear - 1, currentYear].map((y) => (
+              {Array.from({ length: 16 }, (_, i) => currentYear - 10 + i).map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
